@@ -1,7 +1,7 @@
 {
 	"id": "leap2grow-drive-sync",
 	"name": "Drive Sync (leap2grow)",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.13.0",
 	"description": "Syncs a vault with Google Drive through your own Google OAuth client. Based on Google Drive Sync by Richard Xiong.",
 	"author": "leap2grow",

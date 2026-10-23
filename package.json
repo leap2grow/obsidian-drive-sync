@@ -1,6 +1,6 @@
 {
 	"name": "leap2grow-drive-sync",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Syncs an Obsidian vault with Google Drive through your own Google OAuth client.",
 	"main": "main.js",
 	"type": "module",
