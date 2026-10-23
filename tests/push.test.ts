@@ -125,6 +125,7 @@ describe('push', () => {
 		};
 		const plugin = {
 			syncing: false,
+			manifest: { id: 'leap2grow-drive-sync' },
 			app: {
 				vault: {
 					configDir: '.config',
@@ -146,7 +147,7 @@ describe('push', () => {
 				driveIdToPath: {
 					'deleted-id': 'deleted.md',
 					'changed-id': 'changed.md',
-					'data-id': '.config/plugins/google-drive-sync/data.json',
+					'data-id': '.config/plugins/leap2grow-drive-sync/data.json',
 				},
 				lastSyncedAt: 0,
 				changesToken: 'changes',
@@ -168,6 +169,11 @@ describe('push', () => {
 		expect(drive.uploadFile).toHaveBeenCalled();
 		expect(drive.updateFile).toHaveBeenCalledWith(
 			'changed-id',
+			expect.any(Blob),
+			expect.any(Object),
+		);
+		expect(drive.updateFile).toHaveBeenCalledWith(
+			'data-id',
 			expect.any(Blob),
 			expect.any(Object),
 		);

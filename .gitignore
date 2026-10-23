@@ -20,3 +20,6 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# Google OAuth client downloads (contain the client secret)
+client_secret*.json

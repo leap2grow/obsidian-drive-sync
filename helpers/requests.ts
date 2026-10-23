@@ -113,43 +113,35 @@ export const getDriveAgent = (t: ObsidianGoogleDrive) => {
 	};
 };
 
+export const hasClientCredentials = (t: ObsidianGoogleDrive) =>
+	Boolean(t.settings.clientId.trim() && t.settings.clientSecret.trim());
+
 export const refreshAccessToken = async (
 	t: ObsidianGoogleDrive,
 	refreshToken?: string,
 ) => {
+	// The refresh token only ever goes to Google, and only with our own client.
+	if (!hasClientCredentials(t)) {
+		new Notice(
+			'Add your own Google client ID and client secret in the plugin settings first.',
+		);
+		return;
+	}
+
 	try {
 		const token = refreshToken || t.settings.refreshToken;
-		const hasCustomClient = Boolean(
-			t.settings.clientId && t.settings.clientSecret,
-		);
-		const response = await requestUrl(
-			hasCustomClient
-				? {
-						url: 'https://oauth2.googleapis.com/token',
-						method: 'POST',
-						contentType: 'application/x-www-form-urlencoded',
-						body: new URLSearchParams({
-							client_id: t.settings.clientId,
-							client_secret: t.settings.clientSecret,
-							grant_type: 'refresh_token',
-							refresh_token: token,
-						}).toString(),
-						throw: false,
-					}
-				: {
-						url:
-							t.settings.accessTokenUrl ||
-							'https://ogd-server.richardxiong.com/api/access',
-						method: 'POST',
-						contentType: 'application/json',
-						body: JSON.stringify({
-							refresh_token: token,
-							clientId: t.settings.clientId,
-							clientSecret: t.settings.clientSecret,
-						}),
-						throw: false,
-					},
-		);
+		const response = await requestUrl({
+			url: 'https://oauth2.googleapis.com/token',
+			method: 'POST',
+			contentType: 'application/x-www-form-urlencoded',
+			body: new URLSearchParams({
+				client_id: t.settings.clientId.trim(),
+				client_secret: t.settings.clientSecret.trim(),
+				grant_type: 'refresh_token',
+				refresh_token: token.trim(),
+			}).toString(),
+			throw: false,
+		});
 
 		if ([400, 401, 403].includes(response.status)) {
 			console.error(

@@ -34,7 +34,6 @@ const createPlugin = () =>
 	Object.assign(Object.create(ObsidianGoogleDrive.prototype), {
 		settings: {
 			refreshToken: 'refresh',
-			accessTokenUrl: 'https://ogd-server.richardxiong.com/api/access',
 			autoPush: false,
 			operations: {},
 			driveIdToPath: {},

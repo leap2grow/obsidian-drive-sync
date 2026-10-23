@@ -1,5 +1,5 @@
 import { checkConnection, getDriveClient } from './helpers/drive';
-import { refreshAccessToken } from './helpers/requests';
+import { hasClientCredentials, refreshAccessToken } from './helpers/requests';
 import { pull } from './helpers/pull';
 import { push } from './helpers/push';
 import { reset } from './helpers/reset';
@@ -19,7 +19,6 @@ interface PluginSettings {
 	refreshToken: string;
 	clientId: string;
 	clientSecret: string;
-	accessTokenUrl: string;
 	autoPush: boolean;
 	operations: Record<string, 'create' | 'delete' | 'modify'>;
 	driveIdToPath: Record<string, string>;
@@ -32,7 +31,6 @@ const DEFAULT_SETTINGS: PluginSettings = {
 	refreshToken: '',
 	clientId: '',
 	clientSecret: '',
-	accessTokenUrl: '',
 	autoPush: false,
 	operations: {},
 	driveIdToPath: {},
@@ -59,9 +57,9 @@ export default class ObsidianGoogleDrive extends Plugin {
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 
-		if (!this.settings.refreshToken) {
+		if (!hasClientCredentials(this) || !this.settings.refreshToken) {
 			new Notice(
-				"Please add your refresh token to Google Drive sync through our website or our readme/this plugin's settings. If you haven't already, please read through this plugin's readme or website for instructions on how to use this plugin. Be careful of your first sync, and make sure to back up your data before your first sync.",
+				"Add your own Google client ID, client secret and refresh token in this plugin's settings, in that order. See the readme for how to create them. Back up your vault before your first sync.",
 				10000,
 			);
 			return;
@@ -368,18 +366,26 @@ class SettingsTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			{
-				name: 'Get refresh token',
-				render: (setting) => {
-					setting.settingEl.empty();
-					setting.settingEl.createEl('a', {
-						href: 'https://ogd.richardxiong.com',
-						text: 'Get refresh token',
-					});
+				name: 'Client ID',
+				desc: 'Your own Google OAuth client ID. Set this and the client secret before the refresh token.',
+				control: {
+					type: 'text',
+					key: 'clientId',
+					placeholder: 'Client ID',
+				},
+			},
+			{
+				name: 'Client secret',
+				desc: 'Your own Google OAuth client secret. The refresh token is only ever sent to Google together with this client.',
+				control: {
+					type: 'text',
+					key: 'clientSecret',
+					placeholder: 'Client secret',
 				},
 			},
 			{
 				name: 'Refresh token',
-				desc: 'A refresh token is required to access your Google Drive for syncing. We suggest cloning your Google Drive vault to the current vault before syncing.',
+				desc: 'Create it with scripts/get-refresh-token.mjs from this plugin\'s repository. We suggest cloning your Google Drive vault to the current vault before syncing.',
 				control: {
 					type: 'text',
 					key: 'refreshToken',
@@ -391,6 +397,11 @@ class SettingsTab extends PluginSettingTab {
 
 						if (value === this.plugin.settings.refreshToken) {
 							return;
+						}
+
+						// Checked before any request so the token is never sent without our own client.
+						if (!hasClientCredentials(this.plugin)) {
+							return 'Set the client ID and client secret first.';
 						}
 
 						if (!(await refreshAccessToken(this.plugin, value))) {
@@ -430,45 +441,6 @@ class SettingsTab extends PluginSettingTab {
 					type: 'toggle',
 					key: 'autoPush',
 					defaultValue: false,
-				},
-			},
-			{
-				name: 'Access token endpoint',
-				desc: 'Service used to exchange the refresh token for a Google access token. The refresh token is sent to this URL. This is just so you can self-host the access token refresher. The code to host the website is available at https://github.com/RichardX366/Obsidian-Google-Drive-website. Defaults to my hosted service at https://ogd-server.richardxiong.com/api/access.',
-				control: {
-					type: 'text',
-					key: 'accessTokenUrl',
-					placeholder:
-						'https://ogd-server.richardxiong.com/api/access',
-					validate: (value: string) => {
-						if (!value) return;
-						try {
-							if (new URL(value).protocol !== 'https:') {
-								return 'Access token endpoint must use HTTPS.';
-							}
-						} catch {
-							return 'Enter a valid access token endpoint URL.';
-						}
-						return;
-					},
-				},
-			},
-			{
-				name: 'Client ID',
-				desc: 'Optional OAuth client ID. When both a client ID and client secret are set, the plugin exchanges refresh tokens directly with Google.',
-				control: {
-					type: 'text',
-					key: 'clientId',
-					placeholder: 'Client ID',
-				},
-			},
-			{
-				name: 'Client secret',
-				desc: 'Optional OAuth client secret. When both a client ID and client secret are set, the plugin exchanges refresh tokens directly with Google.',
-				control: {
-					type: 'text',
-					key: 'clientSecret',
-					placeholder: 'Client secret',
 				},
 			},
 		];

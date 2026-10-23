@@ -516,7 +516,7 @@ export const push = async (
 
 		await t.drive.updateFile(
 			pathsToIds[
-				vault.configDir + '/plugins/google-drive-sync/data.json'
+				`${vault.configDir}/plugins/${t.manifest.id}/data.json`
 			] as string,
 			new Blob([JSON.stringify(t.settings, null, 2)]),
 			{ modifiedTime: new Date().toISOString() },

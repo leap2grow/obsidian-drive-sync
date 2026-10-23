@@ -30,7 +30,6 @@ const createPlugin = () => ({
 		refreshToken: 'saved-token',
 		clientId: 'custom-client-id',
 		clientSecret: 'custom-client-secret',
-		accessTokenUrl: 'https://tokens.example.com/access',
 	},
 	saveSettings: vi.fn(async () => undefined),
 });
@@ -121,24 +120,43 @@ describe('refreshAccessToken', () => {
 		);
 	});
 
-	it('uses the configured endpoint unless both custom credentials exist', async () => {
+	it.each([
+		['client ID', 'clientId'],
+		['client secret', 'clientSecret'],
+	] as const)(
+		'sends nothing when the %s is missing',
+		async (_label, key) => {
+			const plugin = createPlugin();
+			plugin.settings[key] = '  ';
+
+			await expect(
+				refreshAccessToken(plugin as never, 'replacement-token'),
+			).resolves.toBeUndefined();
+
+			expect(mocks.requestUrl).not.toHaveBeenCalled();
+			expect(mocks.notices.at(-1)).toContain('client ID and client secret');
+		},
+	);
+
+	it('trims pasted credentials before sending them to Google', async () => {
 		mocks.requestUrl.mockResolvedValue(
 			response(200, { access_token: 'access', expires_in: 3600 }),
 		);
 		const plugin = createPlugin();
-		plugin.settings.clientSecret = '';
+		plugin.settings.clientId = ' custom-client-id\n';
+		plugin.settings.clientSecret = 'custom-client-secret ';
 
-		await refreshAccessToken(plugin as never);
+		await refreshAccessToken(plugin as never, ' pasted-token ');
 
 		expect(mocks.requestUrl).toHaveBeenCalledWith(
 			expect.objectContaining({
-				url: 'https://tokens.example.com/access',
-				contentType: 'application/json',
-				body: JSON.stringify({
-					refresh_token: 'saved-token',
-					clientId: 'custom-client-id',
-					clientSecret: '',
-				}),
+				url: 'https://oauth2.googleapis.com/token',
+				body: new URLSearchParams({
+					client_id: 'custom-client-id',
+					client_secret: 'custom-client-secret',
+					grant_type: 'refresh_token',
+					refresh_token: 'pasted-token',
+				}).toString(),
 			}),
 		);
 	});
